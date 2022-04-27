@@ -1,7 +1,6 @@
 module BestInPlace
   module Helper
     def best_in_place(object, field, opts = {})
-
       best_in_place_assert_arguments(opts)
       type = opts[:as] || :input
       field = field.to_s
@@ -22,7 +21,7 @@ module BestInPlace
         value = value.to_s
         collection = best_in_place_default_collection if collection.blank?
         collection = best_in_place_collection_builder(type, collection)
-        display_value = collection.flat_map{|a| a[0].to_s == value ? a[1] : nil }.compact[0]
+        display_value = collection.flat_map { |a| a[0].to_s == value ? a[1] : nil }.compact[0]
         collection = collection.to_json
         options[:data]['bip-collection'] = html_escape(collection)
       end
@@ -57,10 +56,9 @@ module BestInPlace
         opts[:warning_before_save].presence
       options[:data]['bip-warning-before-save-with-new-values'] =
         opts[:warning_before_save_with_new_values].presence
-        
-      if opts[:raw]
-        options[:data]['bip-raw'] = 'true'
-      end
+      options[:data]['bip-warning-if-old-value'] =
+        opts[:warning_if_old_value].presence
+      options[:data]['bip-raw'] = 'true' if opts[:raw]
 
       # delete nil keys only
       options[:data].delete_if { |_, v| v.nil? }
@@ -83,11 +81,11 @@ module BestInPlace
     private
 
     def pass_through_html_options(opts, options)
-      known_keys = [:id, :type, :nil, :classes, :collection, :data,
-                    :activator, :cancel_button, :cancel_button_class, :html_attrs, :inner_class, :nil,
-                    :object_name, :ok_button, :ok_button_class, :display_as, :display_with, :path, :value,
-                    :use_confirm, :confirm, :sanitize, :raw, :helper_options, :url, :place_holder, :class,
-                    :as, :param, :container]
+      known_keys = %i[id type nil classes collection data
+                      activator cancel_button cancel_button_class html_attrs inner_class nil
+                      object_name ok_button ok_button_class display_as display_with path value
+                      use_confirm confirm sanitize raw helper_options url place_holder class
+                      as param container]
       uknown_keys = opts.keys - known_keys
       uknown_keys.each { |key| options[key] = opts[key] }
     end
@@ -122,30 +120,30 @@ module BestInPlace
     end
 
     def best_in_place_real_object_for(object)
-      (object.is_a?(Array) && object.last.class.respond_to?(:model_name)) ? object.last : object
+      object.is_a?(Array) && object.last.class.respond_to?(:model_name) ? object.last : object
     end
 
     def best_in_place_assert_arguments(args)
       best_in_place_deprecated_options(args)
 
       if args[:display_as] && args[:display_with]
-        fail ArgumentError, 'Can`t use both `display_as`` and `display_with` options at the same time'
+        raise ArgumentError, 'Can`t use both `display_as`` and `display_with` options at the same time'
       end
 
       if args[:display_with] && !args[:display_with].is_a?(Proc) && !ViewHelpers.respond_to?(args[:display_with])
-        fail ArgumentError, "Can't find helper #{args[:display_with]}"
+        raise ArgumentError, "Can't find helper #{args[:display_with]}"
       end
     end
 
     def best_in_place_deprecated_options(opts)
       deprecations = [
-          {from: :path, to: :url},
-          {from: :object_name, to: :param},
-          {from: :type, to: :as},
-          {from: :classes, to: :class},
-          {from: :nil, to: :place_holder},
-          {from: :use_confirm, to: :confirm},
-          {from: :sanitize, to: :raw}
+        { from: :path, to: :url },
+        { from: :object_name, to: :param },
+        { from: :type, to: :as },
+        { from: :classes, to: :class },
+        { from: :nil, to: :place_holder },
+        { from: :use_confirm, to: :confirm },
+        { from: :sanitize, to: :raw }
       ]
 
       deprecations.each do |deprecation|
@@ -170,19 +168,19 @@ module BestInPlace
       if collection.length == 2
         [['false', collection[0]], ['true', collection[1]]]
       else
-        fail ArgumentError, '[Best_in_place] :collection array should have 2 values'
+        raise ArgumentError, '[Best_in_place] :collection array should have 2 values'
       end
     end
 
     def best_in_place_collection_select(collection)
       return Array(collection) if collection[0].is_a?(Array) || collection[0].length == 2
 
-      collection.each_with_index.map { |a, i| [i+1, a] }
+      collection.each_with_index.map { |a, i| [i + 1, a] }
     end
 
     def best_in_place_default_collection
-      {'true' => t(:'best_in_place.yes', default: 'Yes'),
-       'false' => t(:'best_in_place.no', default: 'No')}
+      { 'true' => t(:'best_in_place.yes', default: 'Yes'),
+        'false' => t(:'best_in_place.no', default: 'No') }
     end
   end
 end
